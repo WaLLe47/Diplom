@@ -1,0 +1,2 @@
+SOLVER_NAME="appsi_highs"
+COEF_BOUND=1e6
