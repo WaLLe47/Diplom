@@ -2,64 +2,49 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_clusters(
-    results,
-    x,
-    y
-):
-
-    colors=[
+def plot_clusters(results, x, y, ax=None, show=True):
+    colors = [
         "red",
         "blue",
         "green",
         "orange",
-        "purple"
+        "purple",
+        "brown",
+        "cyan",
+        "magenta",
     ]
 
-    plt.figure()
+    if ax is None:
+        _, ax = plt.subplots()
 
-    clusters=results["clusters"]
-    coeffs=results["coeffs"]
+    clusters = results["clusters"]
+    coeffs = results["coeffs"]
 
-
-    for j,pts in clusters.items():
-
-        xs=[]
-        ys=[]
+    for j, pts in clusters.items():
+        xs = []
+        ys = []
 
         for k in pts:
             xs.append(x[k])
             ys.append(y[k])
 
-        plt.scatter(
-            xs,
-            ys,
-            color=colors[j],
-            label=f"Cluster {j+1}"
-        )
+        color = colors[j % len(colors)]
 
+        ax.scatter(xs, ys, color=color, label=f"Cluster {j + 1}")
 
-    xline=np.linspace(
-        min(x),
-        max(x),
-        200
-    )
+    xline = np.linspace(min(x), max(x), 200)
 
-    for j,(a0,a1) in enumerate(coeffs):
+    for j, (a0, a1) in enumerate(coeffs):
+        yline = a0 + a1 * xline
+        color = colors[j % len(colors)]
 
-        yline=a0+a1*xline
+        ax.plot(xline, yline, linestyle="--", color=color, label=f"Reg {j + 1}")
 
-        plt.plot(
-            xline,
-            yline,
-            linestyle="--",
-            color=colors[j],
-            label=f"Reg {j+1}"
-        )
+    ax.grid(True)
+    ax.legend()
+    ax.set_title("Cluster Linear Regression")
 
-    plt.grid(True)
-    plt.legend()
-    plt.title(
-      "Cluster Linear Regression"
-    )
-    plt.show()
+    if show:
+        plt.show()
+
+    return ax
