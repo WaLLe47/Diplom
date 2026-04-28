@@ -5,10 +5,11 @@ import numpy as np
 from matplotlib import image as mpimg
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
+from PySide6.QtCore import Qt
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QFileDialog,
-    QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -84,6 +85,21 @@ QLineEdit, QSpinBox, QComboBox {
     color: #f9fafb;
     padding: 2px 6px;
 }
+QPushButton#mode_btn {
+    min-height: 30px;
+    border-radius: 10px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #0f172a;
+    color: #d1d5db;
+    border: 1px solid #374151;
+}
+QPushButton#mode_btn:checked {
+    background: #f59e0b;
+    color: #111827;
+    border: 1px solid #f59e0b;
+}
 QSpinBox::up-button, QSpinBox::down-button {
     width: 20px;
     border-left: 1px solid #374151;
@@ -91,6 +107,20 @@ QSpinBox::up-button, QSpinBox::down-button {
 }
 QSpinBox::up-button:hover, QSpinBox::down-button:hover {
     background: #374151;
+}
+QSpinBox::up-arrow {
+    width: 0px;
+    height: 0px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 7px solid #f9fafb;
+}
+QSpinBox::down-arrow {
+    width: 0px;
+    height: 0px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid #f9fafb;
 }
 QTabWidget::pane {
     border: 1px solid #374151;
@@ -168,6 +198,21 @@ QLineEdit, QSpinBox, QComboBox {
     color: #111827;
     padding: 2px 6px;
 }
+QPushButton#mode_btn {
+    min-height: 30px;
+    border-radius: 10px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #ffffff;
+    color: #374151;
+    border: 1px solid #9ca3af;
+}
+QPushButton#mode_btn:checked {
+    background: #ea580c;
+    color: #ffffff;
+    border: 1px solid #ea580c;
+}
 QSpinBox::up-button, QSpinBox::down-button {
     width: 20px;
     border-left: 1px solid #9ca3af;
@@ -175,6 +220,20 @@ QSpinBox::up-button, QSpinBox::down-button {
 }
 QSpinBox::up-button:hover, QSpinBox::down-button:hover {
     background: #e5e7eb;
+}
+QSpinBox::up-arrow {
+    width: 0px;
+    height: 0px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 7px solid #1f2937;
+}
+QSpinBox::down-arrow {
+    width: 0px;
+    height: 0px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid #1f2937;
 }
 QTabWidget::pane {
     border: 1px solid #9ca3af;
@@ -252,12 +311,26 @@ class MainWindow(QWidget):
         mode_layout = QHBoxLayout()
         mode_layout.addWidget(QLabel("Режим размеров:"))
 
-        self.mode_combo = QComboBox()
-        self.mode_combo.addItem("Не задавать", 0)
-        self.mode_combo.addItem("Частично задать", 1)
-        self.mode_combo.addItem("Равные кластеры", 2)
-        self.mode_combo.currentIndexChanged.connect(self._toggle_partial_panel)
-        mode_layout.addWidget(self.mode_combo)
+        self.mode_group = QButtonGroup(self)
+        self.mode_none_btn = QPushButton("Не задавать")
+        self.mode_none_btn.setObjectName("mode_btn")
+        self.mode_none_btn.setCheckable(True)
+        self.mode_partial_btn = QPushButton("Частично задать")
+        self.mode_partial_btn.setObjectName("mode_btn")
+        self.mode_partial_btn.setCheckable(True)
+        self.mode_equal_btn = QPushButton("Равные кластеры")
+        self.mode_equal_btn.setObjectName("mode_btn")
+        self.mode_equal_btn.setCheckable(True)
+
+        self.mode_group.addButton(self.mode_none_btn, 0)
+        self.mode_group.addButton(self.mode_partial_btn, 1)
+        self.mode_group.addButton(self.mode_equal_btn, 2)
+        self.mode_none_btn.setChecked(True)
+        self.mode_group.idClicked.connect(self._toggle_partial_panel)
+
+        mode_layout.addWidget(self.mode_none_btn)
+        mode_layout.addWidget(self.mode_partial_btn)
+        mode_layout.addWidget(self.mode_equal_btn)
 
         self.partial_group = QWidget()
         self.partial_form = QFormLayout(self.partial_group)
@@ -286,7 +359,6 @@ class MainWindow(QWidget):
 
         actions_layout.addWidget(self.solve_btn)
         actions_layout.addWidget(self.export_pdf_btn)
-        actions_layout.addWidget(self.theme_btn)
 
         output_group = QGroupBox("Результаты")
         output_layout = QVBoxLayout(output_group)
@@ -311,6 +383,7 @@ class MainWindow(QWidget):
         self.error_plot_view = QWebEngineView()
         self.plot_tabs.addTab(self.cluster_plot_view, "Кластеры")
         self.plot_tabs.addTab(self.error_plot_view, "Ошибки")
+        self.plot_tabs.setCornerWidget(self.theme_btn, Qt.Corner.TopRightCorner)
 
         chart_layout.addWidget(self.plot_tabs)
 
@@ -342,11 +415,15 @@ class MainWindow(QWidget):
             self.partial_form.addRow(f"|P{j + 1}|:", line_edit)
             self.partial_inputs.append(line_edit)
 
-    def _toggle_partial_panel(self):
-        self.partial_group.setVisible(self.mode_combo.currentData() == 1)
+    def _selected_mode(self):
+        mode_id = self.mode_group.checkedId()
+        return 0 if mode_id == -1 else mode_id
+
+    def _toggle_partial_panel(self, *_):
+        self.partial_group.setVisible(self._selected_mode() == 1)
 
     def _build_cluster_sizes(self, n, r):
-        mode = self.mode_combo.currentData()
+        mode = self._selected_mode()
 
         if mode == 0:
             return None
