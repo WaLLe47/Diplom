@@ -27,6 +27,26 @@ def _rgb(red: float, green: float, blue: float, scale: int) -> str:
     return f"rgb({int(red * scale)},{int(green * scale)},{int(blue * scale)})"
 
 
+def _base_layout(title: str, x_title: str, y_title: str) -> dict:
+    """Shared Plotly layout tuned for the white chart canvas."""
+    return dict(
+        title=dict(text=title, font=dict(size=16, color="#2e1065")),
+        xaxis_title=x_title,
+        yaxis_title=y_title,
+        template="plotly_white",
+        paper_bgcolor="#ffffff",
+        plot_bgcolor="#ffffff",
+        font=dict(family="Segoe UI, system-ui, sans-serif", color="#4c1d95", size=12),
+        margin=dict(l=64, r=24, t=56, b=52),
+        legend=dict(
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="#e9d5ff",
+            borderwidth=1,
+            font=dict(size=11),
+        ),
+    )
+
+
 def build_cluster_plot(
     results: dict[str, Any],
     x: list[float],
@@ -89,15 +109,15 @@ def build_cluster_plot(
         )
     )
 
-    fig.update_layout(
-        title="Кластерная линейная регрессия (MILP)",
-        xaxis_title="Инвестиции (x)",
-        yaxis_title="Выпуск продукции (y)",
-        template="plotly_white",
-        legend={"title": "Обозначения"},
+    layout = _base_layout(
+        "Кластерная линейная регрессия (MILP)",
+        "Инвестиции (x)",
+        "Выпуск продукции (y)",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="LightGray")
-    fig.update_yaxes(showgrid=True, gridcolor="LightGray")
+    layout["legend"]["title"] = {"text": "Обозначения"}
+    fig.update_layout(**layout)
+    fig.update_xaxes(showgrid=True, gridcolor="#eef2f7", zerolinecolor="#cbd5e1")
+    fig.update_yaxes(showgrid=True, gridcolor="#eef2f7", zerolinecolor="#cbd5e1")
     return fig
 
 
@@ -180,11 +200,12 @@ def build_error_plot(results: dict[str, Any], x: list[float], y: list[float]) ->
         )
 
     fig.update_layout(
-        title="Фактические и расчётные значения с ошибками",
-        xaxis_title="Инвестиции (x)",
-        yaxis_title="Выпуск продукции (y)",
-        template="plotly_white",
+        **_base_layout(
+            "Фактические и расчётные значения с ошибками",
+            "Инвестиции (x)",
+            "Выпуск продукции (y)",
+        )
     )
-    fig.update_xaxes(showgrid=True, gridcolor="LightGray")
-    fig.update_yaxes(showgrid=True, gridcolor="LightGray")
+    fig.update_xaxes(showgrid=True, gridcolor="#eef2f7", zerolinecolor="#cbd5e1")
+    fig.update_yaxes(showgrid=True, gridcolor="#eef2f7", zerolinecolor="#cbd5e1")
     return fig
