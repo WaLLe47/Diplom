@@ -1,36 +1,45 @@
-"""CSV loading utilities."""
+"""Excel loading utilities — supports .xlsx and .xls files."""
 
 from pathlib import Path
-from typing import Sequence
 
 import pandas as pd
 
-REQUIRED_COLUMNS: Sequence[str] = ("x", "y")
 
+def load_excel(path: str | Path) -> pd.DataFrame:
+    """Load an Excel file and return the full numeric DataFrame.
 
-def load_csv(path: str | Path) -> tuple[list[float], list[float]]:
-    """Load a two-column dataset from CSV.
-
-    The optimisation model expects numeric ``x`` and ``y`` columns without
-    missing values.  Validation is done here so the CLI and GUI fail with the
-    same clear message.
+    All non-numeric columns are silently dropped.  The caller is responsible
+    for choosing which columns to use as X (predictors) and Y (target).
     """
-    csv_path = Path(path)
-    if not csv_path.exists():
-        raise FileNotFoundError(f"CSV файл не найден: {csv_path}")
+    excel_path = Path(path)
+    if not excel_path.exists():
+        raise FileNotFoundError(f"Файл не найден: {excel_path}")
 
-    df = pd.read_csv(csv_path)
-    missing_columns = [column for column in REQUIRED_COLUMNS if column not in df.columns]
-    if missing_columns:
-        raise ValueError("CSV должен содержать столбцы: x, y")
+    suffix = excel_path.suffix.lower()
+    if suffix not in (".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"):
+        raise ValueError(
+            f"Неподдерживаемый формат файла: {suffix}\n"
+            "Поддерживаются: .xlsx, .xls, .xlsm, .xlsb, .ods"
+        )
 
-    data = df.loc[:, list(REQUIRED_COLUMNS)].copy()
-    for column in REQUIRED_COLUMNS:
-        data[column] = pd.to_numeric(data[column], errors="coerce")
+    try:
+        df = pd.read_excel(excel_path, sheet_name=0)
+    except Exception as exc:
+        raise ValueError(f"Ошибка чтения файла Excel: {exc}") from exc
 
-    if data.empty:
-        raise ValueError("CSV не должен быть пустым")
-    if data.isna().any().any():
-        raise ValueError("Столбцы x и y должны содержать только числовые значения")
+    if df.empty:
+        raise ValueError("Файл не должен быть пустым")
 
-    return data["x"].tolist(), data["y"].tolist()
+    # Keep only numeric columns
+    df_num = df.select_dtypes(include="number")
+    if df_num.shape[1] < 2:
+        raise ValueError(
+            "Файл должен содержать минимум 2 числовых столбца (X и Y)"
+        )
+
+    if df_num.isna().any().any():
+        df_num = df_num.dropna()
+        if df_num.empty:
+            raise ValueError("После удаления строк с пропусками набор данных пуст")
+
+    return df_num.reset_index(drop=True)

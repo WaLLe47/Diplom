@@ -1,214 +1,114 @@
-"""Theme definitions and stylesheet builder — glassmorphism style."""
+"""
+Custom stylesheet layer applied ON TOP of qt-material dark_purple theme.
+qt-material handles all standard widgets; we only override our named components.
+"""
 
-THEMES = {
-    "dark": {
-        "bg_primary":       "#12081f",
-        "bg_secondary":     "rgba(255,255,255,0.05)",
-        "bg_sidebar":       "rgba(28,14,48,0.94)",
-        "bg_card":          "rgba(255,255,255,0.07)",
-        "bg_elevated":      "rgba(255,255,255,0.10)",
-        "bg_hover":         "rgba(255,255,255,0.12)",
-        "border":           "rgba(255,255,255,0.10)",
-        "border_subtle":    "rgba(255,255,255,0.16)",
-        "border_glow":      "rgba(192,132,252,0.35)",
-        "text_primary":     "#f8f4ff",
-        "text_secondary":   "#c4b5d8",
-        "text_muted":       "#8b7aa8",
-        "accent":           "#c084fc",
-        "accent_soft":      "rgba(192,132,252,0.18)",
-        "accent_hover":     "#d8b4fe",
-        "accent_green":     "#2dd4bf",
-        "accent_green_dim": "rgba(45,212,191,0.15)",
-        "accent_red":       "#fb7185",
-        "accent_orange":    "#fb923c",
-        "accent_purple":    "#e879f9",
-        "accent_pink":      "#f472b6",
-        "btn_primary_bg":   "#ea580c",
-        "btn_primary_mid":  "#f472b6",
-        "btn_primary_hover":"#fb923c",
-        "btn_primary_text": "#ffffff",
-        "scrollbar":        "transparent",
-        "scrollbar_thumb":  "rgba(255,255,255,0.18)",
-        "selection":        "rgba(192,132,252,0.25)",
-        "overlay":          "rgba(10,5,20,0.78)",
-        "tab_active_bg":    "transparent",
-        "tab_inactive_bg":  "transparent",
-        "logo_bg":          "rgba(192,132,252,0.15)",
-        "logo_border":      "rgba(232,121,249,0.40)",
-        "glow":             "rgba(192,132,252,0.10)",
-        "drawer_scrim":     "rgba(8,4,18,0.68)",
-        "chart_bg":         "rgba(255,255,255,0.96)",
-        "chart_border":     "rgba(255,255,255,0.22)",
-        "grad_1":           "#1a0f2e",
-        "grad_2":           "#140c24",
-        "grad_3":           "#0c1228",
-    },
-    "light": {
-        "bg_primary":       "#ede9fe",
-        "bg_secondary":     "rgba(255,255,255,0.72)",
-        "bg_sidebar":       "rgba(255,255,255,0.88)",
-        "bg_card":          "rgba(255,255,255,0.85)",
-        "bg_elevated":      "rgba(255,255,255,0.95)",
-        "bg_hover":         "rgba(237,233,254,0.9)",
-        "border":           "rgba(109,40,217,0.12)",
-        "border_subtle":    "rgba(109,40,217,0.20)",
-        "border_glow":      "rgba(124,58,237,0.30)",
-        "text_primary":     "#1e1033",
-        "text_secondary":   "#5b4a78",
-        "text_muted":       "#8b7aa8",
-        "accent":           "#7c3aed",
-        "accent_soft":      "rgba(124,58,237,0.12)",
-        "accent_hover":     "#6d28d9",
-        "accent_green":     "#0d9488",
-        "accent_green_dim": "#ccfbf1",
-        "accent_red":       "#e11d48",
-        "accent_orange":    "#ea580c",
-        "accent_purple":    "#a855f7",
-        "accent_pink":      "#db2777",
-        "btn_primary_bg":   "#7c3aed",
-        "btn_primary_mid":  "#db2777",
-        "btn_primary_hover":"#8b5cf6",
-        "btn_primary_text": "#ffffff",
-        "scrollbar":        "transparent",
-        "scrollbar_thumb":  "rgba(109,40,217,0.25)",
-        "selection":        "rgba(124,58,237,0.15)",
-        "overlay":          "rgba(237,233,254,0.88)",
-        "tab_active_bg":    "transparent",
-        "tab_inactive_bg":  "transparent",
-        "logo_bg":          "rgba(124,58,237,0.10)",
-        "logo_border":      "rgba(124,58,237,0.25)",
-        "glow":             "rgba(124,58,237,0.08)",
-        "drawer_scrim":     "rgba(30,15,50,0.25)",
-        "chart_bg":         "#ffffff",
-        "chart_border":     "rgba(109,40,217,0.15)",
-        "grad_1":           "#f5f3ff",
-        "grad_2":           "#ede9fe",
-        "grad_3":           "#e0e7ff",
-    },
-}
+# Extra colours that extend the purple palette
+_ACCENT_ORANGE  = "#f97316"
+_ACCENT_PINK    = "#e040fb"
+_ACCENT_PURPLE  = "#ab47bc"
+_ACCENT_CYAN    = "#26c6da"
+_ACCENT_GREEN   = "#26c6da"
+_TEXT_DIM       = "rgba(255,255,255,0.45)"
+_BORDER_SUBTLE  = "rgba(255,255,255,0.10)"
+_BORDER_ACCENT  = "rgba(171,71,188,0.55)"
 
-
-def build_stylesheet(theme: str) -> str:
-    t = THEMES[theme]
-    bg_grad = f"""
-        qlineargradient(
-            x1:0, y1:0, x2:1, y2:1,
-            stop:0 {t['grad_1']},
-            stop:0.45 {t['grad_2']},
-            stop:1 {t['grad_3']}
-        )
-    """
-    return f"""
-/* ══ BASE ════════════════════════════════════════════════════════════════ */
-QWidget {{
-    background-color: {t['bg_primary']};
-    color: {t['text_primary']};
-    font-family: "Segoe UI", "SF Pro Text", system-ui, sans-serif;
-    font-size: 13px;
+# ── Run button gradient ────────────────────────────────────────────────────────
+_RUN_BTN = f"""
+#navBtnPrimary {{
+    background: qlineargradient(
+        x1:0, y1:0, x2:1, y2:0,
+        stop:0   {_ACCENT_ORANGE},
+        stop:0.5 {_ACCENT_PINK},
+        stop:1   {_ACCENT_PURPLE}
+    );
+    color: #ffffff;
     border: none;
-    outline: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    min-height: 40px;
+    margin: 2px 0;
+    padding: 0 12px;
 }}
-QLabel {{
-    background: transparent;
+#navBtnPrimary:hover {{
+    background: qlineargradient(
+        x1:0, y1:0, x2:1, y2:0,
+        stop:0 #fb923c,
+        stop:1 {_ACCENT_PINK}
+    );
 }}
-#mainWindow, #mainStack, #contentArea, #contentInner {{
-    background: {bg_grad};
+#navBtnPrimary:disabled {{
+    background: rgba(255,255,255,0.08);
+    color: {_TEXT_DIM};
 }}
+"""
 
-/* ══ ACCENT STRIP ════════════════════════════════════════════════════════ */
+# ── Accent strip at very top ───────────────────────────────────────────────────
+_STRIP = f"""
 #accentStrip {{
     background: qlineargradient(
         x1:0, y1:0, x2:1, y2:0,
-        stop:0 {t['accent_orange']},
-        stop:0.35 {t['accent_pink']},
-        stop:0.7 {t['accent_purple']},
-        stop:1 {t['accent_green']}
+        stop:0   {_ACCENT_ORANGE},
+        stop:0.3 {_ACCENT_PINK},
+        stop:0.6 {_ACCENT_PURPLE},
+        stop:1   {_ACCENT_CYAN}
     );
     min-height: 3px;
     max-height: 3px;
 }}
+"""
 
-/* ══ SCROLLBARS ══════════════════════════════════════════════════════════ */
-QScrollBar:vertical {{
-    background: transparent;
-    width: 5px;
-    margin: 8px 2px;
-    border-radius: 3px;
-}}
-QScrollBar::handle:vertical {{
-    background: {t['scrollbar_thumb']};
-    border-radius: 3px;
-    min-height: 40px;
-}}
-QScrollBar::handle:vertical:hover {{
-    background: {t['accent']};
-}}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
-QScrollBar:horizontal {{
-    background: transparent;
-    height: 5px;
-    margin: 2px 8px;
-    border-radius: 3px;
-}}
-QScrollBar::handle:horizontal {{
-    background: {t['scrollbar_thumb']};
-    border-radius: 3px;
-    min-width: 40px;
-}}
-QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
-
-QScrollArea {{
-    background: transparent;
-    border: none;
-}}
-
-/* ══ SIDEBAR (glass drawer) ══════════════════════════════════════════════ */
-#sidebar {{
-    background-color: {t['bg_sidebar']};
-    border: 1px solid {t['border_subtle']};
-    border-left: none;
-    border-top-right-radius: 24px;
-    border-bottom-right-radius: 24px;
-}}
-#drawerBackdrop {{
-    background: {t['drawer_scrim']};
-}}
-#menuOpenBtn {{
-    background: {t['bg_card']};
-    border: 1px solid {t['border_subtle']};
-    border-radius: 14px;
-    color: {t['text_secondary']};
-    font-size: 15px;
-    min-width: 40px;
-    max-width: 40px;
-    min-height: 40px;
-    max-height: 40px;
-    padding: 0;
-}}
-#menuOpenBtn:hover {{
-    background: {t['bg_hover']};
-    border-color: {t['border_glow']};
-    color: {t['text_primary']};
-}}
+# ── Top bar ────────────────────────────────────────────────────────────────────
+_TOPBAR = f"""
 #topBar {{
-    background: {t['bg_secondary']};
-    border-bottom: 1px solid {t['border']};
+    border-bottom: 1px solid {_BORDER_SUBTLE};
+}}
+#topBarTitle {{
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+}}
+#statusPill {{
+    border: 1px solid {_BORDER_SUBTLE};
+    border-radius: 8px;
+    padding: 3px 10px;
+    background: rgba(255,255,255,0.06);
+}}
+#metricLabel {{
+    font-size: 13px;
+    font-weight: 700;
+    color: {_ACCENT_CYAN};
+}}
+#globalRegPill {{
+    border: 1px solid {_BORDER_ACCENT};
+    border-radius: 8px;
+    padding: 3px 10px;
+    background: rgba(171,71,188,0.15);
+}}
+#globalRegLabel {{
+    font-size: 12px;
+    font-weight: 600;
+    color: {_ACCENT_PINK};
+    font-family: "Cascadia Mono", "Consolas", monospace;
+}}
+"""
+
+# ── Sidebar ────────────────────────────────────────────────────────────────────
+_SIDEBAR = f"""
+#sidebar {{
+    border-right: 1px solid {_BORDER_SUBTLE};
 }}
 #sidebarHeader {{
-    background-color: transparent;
-    border-bottom: 1px solid {t['border']};
-    border-top-right-radius: 24px;
+    border-bottom: 1px solid {_BORDER_SUBTLE};
 }}
 #logoBadge {{
-    background: qlineargradient(
-        x1:0, y1:0, x2:1, y2:1,
-        stop:0 {t['logo_bg']},
-        stop:1 rgba(244,114,182,0.18)
-    );
-    border: 1px solid {t['logo_border']};
-    border-radius: 14px;
-    font-size: 17px;
-    color: {t['accent']};
+    background: rgba(171,71,188,0.20);
+    border: 1px solid rgba(171,71,188,0.45);
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 800;
+    color: {_ACCENT_PINK};
     min-width: 40px;
     max-width: 40px;
     min-height: 40px;
@@ -216,375 +116,288 @@ QScrollArea {{
     qproperty-alignment: AlignCenter;
 }}
 #appTitle {{
-    font-size: 15px;
-    font-weight: 600;
-    color: {t['text_primary']};
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
 }}
 #appSubtitle {{
     font-size: 11px;
-    color: {t['text_muted']};
+    color: {_TEXT_DIM};
 }}
-#burgerBtn {{
-    background: {t['bg_card']};
-    border: 1px solid {t['border']};
-    border-radius: 12px;
-    color: {t['text_secondary']};
-    font-size: 13px;
-    padding: 0;
-}}
-#burgerBtn:hover {{
-    background: {t['bg_hover']};
-    border-color: {t['border_glow']};
-    color: {t['text_primary']};
-}}
-
-/* ══ NAV ═════════════════════════════════════════════════════════════════ */
 #navSection {{
-    font-size: 11px;
-    font-weight: 600;
-    color: {t['text_muted']};
-    padding: 16px 16px 6px 16px;
+    font-size: 10px;
+    font-weight: 700;
+    color: {_TEXT_DIM};
+    padding: 4px 0 0 0;
+    letter-spacing: 0.8px;
 }}
 #navBtn {{
     background: transparent;
-    border: 1px solid transparent;
-    border-radius: 14px;
-    color: {t['text_secondary']};
+    border: none;
+    border-radius: 6px;
     text-align: left;
-    padding: 10px 14px;
+    padding: 6px 10px;
     font-size: 13px;
-    min-height: 40px;
+    min-height: 34px;
+    color: rgba(255,255,255,0.75);
 }}
 #navBtn:hover {{
-    background: {t['bg_card']};
-    border-color: {t['border']};
-    color: {t['text_primary']};
+    background: rgba(255,255,255,0.07);
+    color: #ffffff;
 }}
 #navBtn:disabled {{
-    color: {t['text_muted']};
+    color: {_TEXT_DIM};
 }}
-#navBtnPrimary {{
-    background: qlineargradient(
-        x1:0, y1:0, x2:1, y2:1,
-        stop:0 {t['btn_primary_hover']},
-        stop:0.5 {t['btn_primary_mid']},
-        stop:1 {t['accent_purple']}
-    );
-    color: {t['btn_primary_text']};
-    border: 1px solid {t['border_glow']};
-    border-radius: 16px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 600;
-    min-height: 46px;
-    margin: 8px 6px;
-    padding: 0 18px;
+#navBtn:focus {{
+    outline: none;
+    border: none;
 }}
-#navBtnPrimary:hover {{
-    background: qlineargradient(
-        x1:0, y1:0, x2:1, y2:1,
-        stop:0 {t['btn_primary_hover']},
-        stop:1 {t['accent_pink']}
-    );
+#hSep {{
+    background: {_BORDER_SUBTLE};
+    max-height: 1px;
+    min-height: 1px;
+    margin: 4px 0;
 }}
-#navBtnPrimary:disabled {{
-    background: {t['bg_card']};
-    color: {t['text_muted']};
-    border-color: {t['border']};
-}}
-
-/* ══ FILE / PARAMS ═══════════════════════════════════════════════════════ */
 #fileInfoBadge {{
-    background: {t['bg_card']};
-    border: 1px solid {t['border']};
-    border-left: 3px solid {t['accent_pink']};
-    border-radius: 14px;
-    color: {t['text_secondary']};
+    border-left: 3px solid {_ACCENT_ORANGE};
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin: 0;
     font-size: 12px;
-    padding: 12px 14px;
-    margin: 4px 8px 0 8px;
+    color: rgba(255,255,255,0.80);
+    background: rgba(255,255,255,0.05);
 }}
 #paramsCard {{
-    background: {t['bg_card']};
-    border: 1px solid {t['border']};
-    border-radius: 16px;
-    margin: 2px 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid {_BORDER_SUBTLE};
+    border-radius: 8px;
 }}
+#formLabel {{
+    font-size: 12px;
+    color: rgba(255,255,255,0.70);
+    min-width: 82px;
+    max-width: 82px;
+}}
+#themeLabel {{
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+}}
+"""
 
-QSpinBox, QLineEdit {{
-    background: {t['bg_elevated']};
-    border: 1px solid {t['border']};
-    border-radius: 12px;
-    padding: 8px 12px;
-    color: {t['text_primary']};
-    min-height: 32px;
+# ── Mode toggle (Свободный / Ручной / Поровну) ───────────────────────────────
+_MODE_BTN = f"""
+#modeToggle {{
+    background: rgba(255,255,255,0.04);
+    border: 1px solid {_BORDER_SUBTLE};
+    border-radius: 7px;
 }}
-QSpinBox:hover, QLineEdit:hover {{
-    border-color: {t['border_subtle']};
-}}
-QSpinBox:focus, QLineEdit:focus {{
-    border-color: {t['accent']};
-}}
-QSpinBox::up-button, QSpinBox::down-button {{
-    width: 20px;
+#modeBtnLeft, #modeBtnMid, #modeBtnRight {{
+    background: transparent;
     border: none;
+    border-radius: 0;
+    color: rgba(255,255,255,0.62);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 4px;
+    min-height: 32px;
+    max-height: 32px;
+}}
+#modeBtnLeft {{
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}}
+#modeBtnRight {{
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}}
+#modeBtnMid {{
+    border-left: 1px solid {_BORDER_SUBTLE};
+    border-right: 1px solid {_BORDER_SUBTLE};
+}}
+#modeBtnLeft:hover, #modeBtnMid:hover, #modeBtnRight:hover {{
+    background: rgba(255,255,255,0.08);
+    color: #ffffff;
+}}
+#modeBtnLeft:checked, #modeBtnMid:checked, #modeBtnRight:checked {{
+    background: rgba(171,71,188,0.28);
+    color: {_ACCENT_PINK};
+    font-weight: 700;
+}}
+#modeBtnLeft:focus, #modeBtnMid:focus, #modeBtnRight:focus {{
+    outline: none;
+}}
+"""
+
+# ── Tabs ───────────────────────────────────────────────────────────────────────
+_TABS = f"""
+QTabWidget#chartTabs::pane {{
+    border: none;
+    border-top: 1px solid {_BORDER_SUBTLE};
     background: transparent;
 }}
-QLineEdit::placeholder {{
-    color: {t['text_muted']};
+QTabWidget#chartTabs QTabBar {{
+    background: transparent;
 }}
-QLabel#formLabel {{
-    color: {t['text_secondary']};
-    font-size: 12px;
-}}
-#modeBtn {{
-    background: {t['bg_elevated']};
-    border: 1px solid {t['border']};
-    border-radius: 12px;
-    color: {t['text_secondary']};
-    font-size: 11px;
-    font-weight: 500;
-    padding: 8px 0;
-    min-height: 34px;
-}}
-#modeBtn:hover {{
-    background: {t['bg_hover']};
-    color: {t['text_primary']};
-}}
-#modeBtn:checked {{
-    background: {t['accent_soft']};
-    border-color: {t['accent']};
-    color: {t['accent']};
-    font-weight: 600;
-}}
-
-/* ══ TOP BAR ═════════════════════════════════════════════════════════════ */
-#topBarTitle {{
-    font-size: 15px;
-    font-weight: 600;
-    color: {t['text_primary']};
-}}
-#statusPill {{
-    background: {t['bg_card']};
-    border: 1px solid {t['border']};
-    border-radius: 24px;
-    padding: 2px 4px;
-}}
-#metricLabel {{
+QTabWidget#chartTabs QTabBar::tab {{
+    background: transparent;
+    color: rgba(255,255,255,0.50);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 22px;
     font-size: 13px;
-    font-weight: 600;
-    color: {t['accent_green']};
-}}
-#globalRegPill {{
-    background: {t['accent_soft']};
-    border: 1px solid {t['border_glow']};
-    border-radius: 24px;
-    padding: 2px 4px;
-}}
-#globalRegLabel {{
-    font-size: 12px;
     font-weight: 500;
-    color: {t['accent']};
-    font-family: "Cascadia Mono", "Consolas", monospace;
+    margin-right: 2px;
 }}
+QTabWidget#chartTabs QTabBar::tab:selected {{
+    color: #ffffff;
+    font-weight: 700;
+    border-bottom: 2px solid {_ACCENT_PINK};
+    background: transparent;
+}}
+QTabWidget#chartTabs QTabBar::tab:hover:!selected {{
+    color: rgba(255,255,255,0.80);
+    background: rgba(255,255,255,0.05);
+}}
+"""
 
-/* ══ GLASS PANELS ════════════════════════════════════════════════════════ */
-#chartPanel, #resultsPanel {{
-    background: {t['bg_secondary']};
-    border: 1px solid {t['border_subtle']};
-    border-radius: 22px;
-}}
-#chartCanvas {{
-    background: {t['chart_bg']};
-    border: 1px solid {t['chart_border']};
-    border-radius: 16px;
-}}
+# ── Results panel ──────────────────────────────────────────────────────────────
+_RESULTS = f"""
 #panelTitle {{
-    font-size: 12px;
-    font-weight: 600;
-    color: {t['text_muted']};
-    padding: 0 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: {_TEXT_DIM};
+    letter-spacing: 0.6px;
 }}
 #panelCount {{
     font-size: 11px;
-    font-weight: 600;
-    color: {t['accent']};
-    background: {t['accent_soft']};
-    border: 1px solid {t['border_glow']};
-    border-radius: 14px;
-    padding: 4px 12px;
+    font-weight: 700;
+    color: {_ACCENT_PINK};
+    background: rgba(171,71,188,0.15);
+    border: 1px solid {_BORDER_ACCENT};
+    border-radius: 10px;
+    padding: 3px 10px;
 }}
+"""
 
-/* ══ TABS ════════════════════════════════════════════════════════════════ */
-QTabWidget::pane {{
-    background: transparent;
-    border: none;
-}}
-QTabBar::tab {{
-    background: transparent;
-    color: {t['text_muted']};
-    border: none;
-    border-bottom: 2px solid transparent;
-    padding: 12px 22px;
-    margin-right: 4px;
-    font-size: 13px;
-    font-weight: 500;
-}}
-QTabBar::tab:selected {{
-    color: {t['text_primary']};
-    font-weight: 600;
-    border-bottom: 2px solid {t['accent_pink']};
-}}
-QTabBar::tab:hover:!selected {{
-    color: {t['text_secondary']};
-    border-bottom: 2px solid {t['border']};
-}}
-
-/* ══ TABLE ═══════════════════════════════════════════════════════════════ */
-QTableWidget {{
-    background: {t['bg_card']};
-    border: 1px solid {t['border']};
-    border-radius: 16px;
-    gridline-color: transparent;
-    selection-background-color: {t['selection']};
-    selection-color: {t['text_primary']};
-    alternate-background-color: {t['bg_elevated']};
-}}
-QHeaderView::section {{
-    background: {t['bg_elevated']};
-    color: {t['text_muted']};
-    border: none;
-    border-bottom: 1px solid {t['border']};
-    padding: 11px 12px;
-    font-size: 10px;
-    font-weight: 600;
-}}
-QTableWidget::item {{
-    padding: 9px 12px;
-}}
-QTableWidget::item:selected {{
-    background: {t['selection']};
-}}
-
-QTextBrowser {{
-    background: {t['bg_card']};
-    border: 1px solid {t['border']};
-    border-radius: 16px;
-    padding: 12px;
-    color: {t['text_primary']};
-}}
-
-QSplitter::handle:vertical {{
-    background: transparent;
-    height: 12px;
-}}
-
-/* ══ LOADING ═════════════════════════════════════════════════════════════ */
+# ── Loading overlay ────────────────────────────────────────────────────────────
+_LOADING = f"""
 #loadingOverlay {{
-    background: {t['overlay']};
+    background: rgba(25,20,35,0.88);
 }}
 #loadingCard {{
-    background: {t['bg_sidebar']};
-    border: 1px solid {t['border_subtle']};
-    border-radius: 24px;
+    border: 1px solid {_BORDER_SUBTLE};
+    border-radius: 12px;
+    background: #2a2535;
 }}
 #loadingTitle {{
-    font-size: 16px;
-    font-weight: 600;
-    color: {t['text_primary']};
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
 }}
 #loadingSubtitle {{
     font-size: 12px;
-    color: {t['text_secondary']};
-}}
-#stageDot[active="true"] {{
-    background: {t['accent_pink']};
-    border-radius: 4px;
-    min-width: 8px; max-width: 8px;
-    min-height: 8px; max-height: 8px;
-}}
-#stageDot[active="false"] {{
-    background: {t['border']};
-    border-radius: 4px;
-    min-width: 8px; max-width: 8px;
-    min-height: 8px; max-height: 8px;
+    color: rgba(255,255,255,0.60);
 }}
 QProgressBar#progressBar {{
-    background: {t['border']};
+    background: rgba(255,255,255,0.10);
     border: none;
-    border-radius: 6px;
-    height: 6px;
+    border-radius: 4px;
+    height: 5px;
 }}
 QProgressBar#progressBar::chunk {{
     background: qlineargradient(
         x1:0, y1:0, x2:1, y2:0,
-        stop:0 {t['accent_orange']},
-        stop:0.5 {t['accent_pink']},
-        stop:1 {t['accent_purple']}
+        stop:0   {_ACCENT_ORANGE},
+        stop:0.4 {_ACCENT_PINK},
+        stop:1   {_ACCENT_PURPLE}
     );
-    border-radius: 6px;
+    border-radius: 4px;
 }}
+"""
 
-#hSep {{
-    background: {t['border']};
-    max-height: 1px;
-    min-height: 1px;
-    margin: 8px 14px;
-}}
-
-/* ══ DIALOG ══════════════════════════════════════════════════════════════ */
-QDialog {{
-    background: {bg_grad};
-}}
-#dialogHeader, #dialogTableCard {{
-    background: {t['bg_card']};
-    border: 1px solid {t['border_subtle']};
-    border-radius: 18px;
+# ── Dialog ─────────────────────────────────────────────────────────────────────
+_DIALOG = f"""
+#dialogHeader {{
+    background: rgba(255,255,255,0.05);
+    border: 1px solid {_BORDER_SUBTLE};
+    border-radius: 8px;
 }}
 #dialogTitle {{
-    font-size: 16px;
-    font-weight: 600;
-    color: {t['text_primary']};
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
 }}
 #dialogSubtitle {{
     font-size: 12px;
-    color: {t['text_secondary']};
+    color: rgba(255,255,255,0.60);
 }}
 QPushButton#dialogClose {{
-    background: qlineargradient(
-        x1:0, y1:0, x2:1, y2:0,
-        stop:0 {t['accent_soft']},
-        stop:1 rgba(244,114,182,0.20)
-    );
-    border: 1px solid {t['border_glow']};
-    border-radius: 16px;
-    color: {t['accent']};
-    padding: 11px 28px;
+    background: rgba(171,71,188,0.20);
+    border: 1px solid {_BORDER_ACCENT};
+    border-radius: 8px;
+    color: {_ACCENT_PINK};
+    padding: 10px 28px;
     font-size: 13px;
-    font-weight: 600;
-    min-height: 44px;
+    font-weight: 700;
+    min-height: 42px;
 }}
 QPushButton#dialogClose:hover {{
-    background: {t['accent']};
-    color: {t['btn_primary_text']};
-}}
-
-#sidebarFooter {{
-    background: transparent;
-    border-top: 1px solid {t['border']};
-    border-bottom-right-radius: 24px;
-}}
-#versionLabel {{
-    font-size: 10px;
-    font-weight: 600;
-    color: {t['text_muted']};
-    background: {t['bg_card']};
-    border: 1px solid {t['border']};
-    border-radius: 10px;
-    padding: 4px 10px;
-}}
-#themeLabel {{
-    font-size: 12px;
-    color: {t['text_secondary']};
+    background: {_ACCENT_PURPLE};
+    color: #ffffff;
+    border-color: {_ACCENT_PURPLE};
 }}
 """
+
+# ── Drawer backdrop ────────────────────────────────────────────────────────────
+_DRAWER = f"""
+#drawerBackdrop {{
+    background: rgba(10, 8, 16, 0.55);
+}}
+"""
+
+# ── Burger / close btn ─────────────────────────────────────────────────────────
+_BTNS = f"""
+#menuOpenBtn {{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid {_BORDER_SUBTLE};
+    border-radius: 6px;
+    color: rgba(255,255,255,0.70);
+    font-size: 14px;
+}}
+#burgerBtn {{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid {_BORDER_SUBTLE};
+    border-radius: 6px;
+    padding: 0;
+}}
+#burgerBtn:hover, #menuOpenBtn:hover {{
+    background: rgba(255,255,255,0.12);
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.20);
+}}
+"""
+
+_TEXT_BROWSER = '\n/* Details QTextBrowser - remove qt-material dividers */\nQTextBrowser {\n    border: none;\n    outline: none;\n    background: transparent;\n    padding: 4px 6px;\n}\nQTextBrowser QScrollBar:vertical {\n    background: transparent;\n    width: 4px;\n    margin: 4px 2px;\n}\nQTextBrowser QScrollBar::handle:vertical {\n    background: rgba(255,255,255,0.20);\n    border-radius: 2px;\n    min-height: 30px;\n}\nQTextBrowser QScrollBar::add-line:vertical,\nQTextBrowser QScrollBar::sub-line:vertical { height: 0; }\n'
+
+CUSTOM_CSS = (
+    _STRIP + _TOPBAR + _SIDEBAR + _MODE_BTN +
+    _TABS + _RESULTS + _LOADING + _DIALOG +
+    _DRAWER + _BTNS + _RUN_BTN + _TEXT_BROWSER
+)
+
+
+def get_extra() -> dict:
+    """qt-material extra overrides for dark_purple."""
+    return {
+        "font_family":       "Segoe UI",
+        "font_size":         "13px",
+        "line_height":       "20px",
+        "danger":            "#f44336",
+        "warning":           "#ffc107",
+        "success":           "#26c6da",
+        "density_scale":     "-1",
+        "button_shape":      "default",
+        "primaryColor":      "#ab47bc",
+        "primaryLightColor": "#df78ef",
+    }
+

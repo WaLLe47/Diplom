@@ -1,6 +1,8 @@
 """Modern persistent sidebar (replaces slide-out drawer)."""
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QByteArray, QSize, Signal
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QButtonGroup,
     QFormLayout,
@@ -16,9 +18,58 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gui.toggle_switch import ToggleSwitch
 
-SIDEBAR_WIDTH = 288
+_SVG_ICONS: dict[str, str] = {
+    "excel": (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+        ' stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+        '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
+        '<polyline points="14 2 14 8 20 8"/>'
+        '<line x1="8" y1="13" x2="16" y2="13"/>'
+        '<line x1="8" y1="17" x2="16" y2="17"/>'
+        "</svg>"
+    ),
+    "eye": (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+        ' stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+        '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>'
+        '<circle cx="12" cy="12" r="3"/>'
+        "</svg>"
+    ),
+    "file": (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+        ' stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+        '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
+        '<polyline points="14 2 14 8 20 8"/>'
+        "</svg>"
+    ),
+    "close": (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+        ' stroke="currentColor" stroke-width="2.5" stroke-linecap="round">'
+        '<line x1="5" y1="5" x2="19" y2="19"/>'
+        '<line x1="19" y1="5" x2="5" y2="19"/>'
+        "</svg>"
+    ),
+}
+
+
+def _make_icon(name: str, color: str = "#c4b5d8", size: int = 16) -> QIcon:
+    svg_src = _SVG_ICONS.get(name, _SVG_ICONS["file"])
+    coloured = svg_src.replace('stroke="currentColor"', f'stroke="{color}"')
+    data = QByteArray(coloured.encode())
+    renderer = QSvgRenderer(data)
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.transparent)
+    from PySide6.QtGui import QPainter
+    painter = QPainter(pixmap)
+    renderer.render(painter)
+    painter.end()
+    return QIcon(pixmap)
+
+
+
+
+SIDEBAR_WIDTH = 328
 DRAWER_MARGIN = 12
 TOP_BAR_HEIGHT = 60
 
@@ -40,17 +91,18 @@ class _Section(QLabel):
 
 class NavButton(QPushButton):
     def __init__(self, icon: str, text: str, *, danger=False, parent=None):
-        super().__init__(f"  {icon}   {text}", parent)
+        super().__init__(text, parent)
         self.setObjectName("navBtn")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setMinimumHeight(38)
+        self.setMinimumHeight(36)
         self.setCursor(Qt.PointingHandCursor)
+        self.setIcon(_make_icon(icon))
+        self.setIconSize(QSize(16, 16))
 
 
 class Sidebar(QWidget):
     """Persistent left sidebar with all controls."""
 
-    theme_changed = Signal(bool)   # True = dark
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -73,10 +125,13 @@ class Sidebar(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setAlignment(Qt.AlignTop)
 
         body = QWidget()
+        body.setObjectName("sidebarBody")
+        body.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self._body_layout = QVBoxLayout(body)
-        self._body_layout.setContentsMargins(10, 8, 10, 8)
+        self._body_layout.setContentsMargins(14, 2, 14, 8)
         self._body_layout.setSpacing(2)
 
         self._build_data_section()
@@ -88,30 +143,31 @@ class Sidebar(QWidget):
 
         scroll.setWidget(body)
         root.addWidget(scroll, 1)
-        root.addWidget(self._build_footer())
 
     def _build_header(self) -> QWidget:
         header = QWidget()
         header.setObjectName("sidebarHeader")
-        header.setFixedHeight(64)
+        header.setFixedHeight(52)
         hlay = QHBoxLayout(header)
-        hlay.setContentsMargins(12, 10, 12, 10)
+        hlay.setContentsMargins(14, 4, 14, 4)
         hlay.setSpacing(10)
 
-        self.close_btn = QPushButton("✕")
+        self.close_btn = QPushButton()
         self.close_btn.setObjectName("burgerBtn")
         self.close_btn.setToolTip("Закрыть меню")
         self.close_btn.setFixedSize(32, 32)
+        self.close_btn.setIcon(_make_icon("close", color="#d4c8e8", size=18))
+        self.close_btn.setIconSize(QSize(16, 16))
         self.close_btn.setCursor(Qt.PointingHandCursor)
-        hlay.addWidget(self.close_btn, 0, Qt.AlignTop)
+        hlay.addWidget(self.close_btn, 0, Qt.AlignVCenter)
 
-        logo = QLabel("◈")
+        logo = QLabel("M")
         logo.setObjectName("logoBadge")
-        hlay.addWidget(logo, 0, Qt.AlignTop)
+        hlay.addWidget(logo, 0, Qt.AlignVCenter)
 
         title_col = QVBoxLayout()
-        title_col.setSpacing(1)
-        title_col.setContentsMargins(0, 2, 0, 0)
+        title_col.setSpacing(0)
+        title_col.setContentsMargins(0, 0, 0, 0)
 
         title = QLabel("MILP Cluster")
         title.setObjectName("appTitle")
@@ -127,10 +183,10 @@ class Sidebar(QWidget):
     def _build_data_section(self) -> None:
         self._body_layout.addWidget(_Section("Данные"))
 
-        self.load_btn = NavButton("📂", "Загрузить CSV")
+        self.load_btn = NavButton("excel", "Загрузить Excel")
         self._body_layout.addWidget(self.load_btn)
 
-        self.preview_btn = NavButton("👁", "Предпросмотр")
+        self.preview_btn = NavButton("eye",   "Предпросмотр")
         self.preview_btn.setEnabled(False)
         self._body_layout.addWidget(self.preview_btn)
 
@@ -144,14 +200,16 @@ class Sidebar(QWidget):
 
         card = QWidget()
         card.setObjectName("paramsCard")
+        card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         card_lay = QVBoxLayout(card)
-        card_lay.setContentsMargins(12, 10, 12, 10)
-        card_lay.setSpacing(10)
+        card_lay.setContentsMargins(10, 8, 10, 8)
+        card_lay.setSpacing(0)
 
         form = QFormLayout()
-        form.setVerticalSpacing(10)
-        form.setHorizontalSpacing(12)
+        form.setVerticalSpacing(6)
+        form.setHorizontalSpacing(10)
         form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
 
         self.r_spin = QSpinBox()
         self.r_spin.setRange(2, 50)
@@ -161,19 +219,25 @@ class Sidebar(QWidget):
         form.addRow(r_label, self.r_spin)
 
         mode_widget = QWidget()
+        mode_widget.setObjectName("modeToggle")
         mode_row = QHBoxLayout(mode_widget)
         mode_row.setContentsMargins(0, 0, 0, 0)
-        mode_row.setSpacing(4)
+        mode_row.setSpacing(0)
 
         self.mode_group = QButtonGroup(self)
+        self.mode_group.setExclusive(True)
         self._mode_btns = []
-        for idx, text in enumerate(["Своб.", "Ручной", "Поровну"]):
+        _mode_names = ("modeBtnLeft", "modeBtnMid", "modeBtnRight")
+        for idx, (text, obj_name) in enumerate(
+            zip(["Свободный", "Ручной", "Поровну"], _mode_names)
+        ):
             btn = QPushButton(text)
-            btn.setObjectName("modeBtn")
+            btn.setObjectName(obj_name)
             btn.setCheckable(True)
             btn.setChecked(idx == 0)
+            btn.setFixedHeight(32)
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            btn.setMinimumHeight(30)
+            btn.setCursor(Qt.PointingHandCursor)
             self.mode_group.addButton(btn, idx)
             mode_row.addWidget(btn)
             self._mode_btns.append(btn)
@@ -187,13 +251,14 @@ class Sidebar(QWidget):
         self._body_layout.addWidget(card)
 
         self._partial_widget = QWidget()
+        self._partial_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._partial_form = QFormLayout(self._partial_widget)
-        self._partial_form.setContentsMargins(12, 0, 12, 4)
-        self._partial_form.setVerticalSpacing(8)
-        self._partial_form.setHorizontalSpacing(12)
+        self._partial_form.setContentsMargins(0, 4, 0, 0)
+        self._partial_form.setVerticalSpacing(6)
+        self._partial_form.setHorizontalSpacing(10)
         self._partial_widget.setVisible(False)
         self.partial_inputs: list[QLineEdit] = []
-        self._body_layout.addWidget(self._partial_widget)
+        card_lay.addWidget(self._partial_widget)
 
         self.r_spin.valueChanged.connect(self._rebuild_partial)
         self._rebuild_partial()
@@ -207,39 +272,12 @@ class Sidebar(QWidget):
         self.solve_btn.setCursor(Qt.PointingHandCursor)
         self._body_layout.addWidget(self.solve_btn)
 
-        self.pdf_btn = NavButton("📄", "Экспорт PDF")
+        self.pdf_btn = NavButton("file",  "Экспорт PDF")
         self.pdf_btn.setEnabled(False)
         self._body_layout.addWidget(self.pdf_btn)
 
-    def _build_footer(self) -> QWidget:
-        footer = QWidget()
-        footer.setObjectName("sidebarFooter")
-        footer.setFixedHeight(56)
-        lay = QHBoxLayout(footer)
-        lay.setContentsMargins(14, 0, 14, 0)
-        lay.setSpacing(10)
-
-        theme_lbl = QLabel("Тёмная")
-        theme_lbl.setObjectName("themeLabel")
-        lay.addWidget(theme_lbl)
-        lay.addStretch()
-
-        self.theme_toggle = ToggleSwitch(checked=True)
-        self.theme_toggle.toggled_state.connect(self._on_theme_toggle)
-        lay.addWidget(self.theme_toggle)
-
-        ver = QLabel("v2.0")
-        ver.setObjectName("versionLabel")
-        lay.addWidget(ver)
-
-        self._theme_label = theme_lbl
-        return footer
-
     # ─────────────────────────── SLOTS ───────────────────────────────────────
 
-    def _on_theme_toggle(self, checked: bool) -> None:
-        self._theme_label.setText("Тёмная" if checked else "Светлая")
-        self.theme_changed.emit(checked)
 
     def _on_mode_change(self, mode_id: int) -> None:
         self._partial_widget.setVisible(mode_id == 1)
@@ -263,7 +301,7 @@ class Sidebar(QWidget):
     # ─────────────────────────── PUBLIC HELPERS ──────────────────────────────
 
     def set_file_loaded(self, name: str, n: int) -> None:
-        self.file_badge.setText(f"📊  {name}\n{n} наблюдений")
+        self.file_badge.setText(f"{name}\n{n} наблюдений")
         self.preview_btn.setEnabled(True)
 
     def set_solving(self, active: bool) -> None:

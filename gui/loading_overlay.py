@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from gui.styles import THEMES
+# colours hardcoded — qt-material handles theming
 
 
 class _Spinner(QWidget):
@@ -138,8 +138,7 @@ class LoadingOverlay(QWidget):
 
     def set_theme(self, theme: str) -> None:
         self._theme = theme
-        t = THEMES[theme]
-        self._spinner.set_colors(t["border"], t["accent_pink"])
+        self._spinner.set_colors("rgba(255,255,255,0.12)", "#e040fb")
 
     def show_loading(self) -> None:
         self._stage = 0

@@ -25,12 +25,13 @@ from PySide6.QtWidgets import (
 )
 
 from analysis.metrics import mean_percent_error
-from data.loader import load_csv
+from data.loader import load_excel
+import pandas as pd
 from gui.dialogs import DataPreviewDialog
 from gui.loading_overlay import LoadingOverlay
 from gui.pdf_export import export_report
 from gui.sidebar import DRAWER_MARGIN, SIDEBAR_WIDTH, TOP_BAR_HEIGHT, Sidebar
-from gui.styles import THEMES, build_stylesheet
+# styles applied globally via qt-material in app.py
 from gui.worker import SolverThread
 from visualization.plot_clusters import build_cluster_plot, build_error_plot
 
@@ -74,22 +75,21 @@ class MainWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.csv_path: str | None = None
-        self.loaded_data: tuple[list[float], list[float]] | None = None
+        self.loaded_df: pd.DataFrame | None = None          # full DataFrame
+        self.sel_x_cols: list[str] = []                     # chosen X columns
+        self.sel_y_col: str = ""                            # chosen Y column
         self.last_results: dict[str, Any] | None = None
-        self.current_data: tuple[list[float], list[float], int] | None = None
+        self.current_data: tuple | None = None              # (X, y, r, x_cols, y_col)
         self.g_coeffs: tuple[float, float] | None = None
         self.worker: SolverThread | None = None
-        self.current_theme: str = "dark"
 
         self.setObjectName("mainWindow")
         self.setWindowTitle("MILP Cluster Analysis")
         self.resize(1440, 900)
         self.setMinimumSize(960, 640)
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setStyleSheet(build_stylesheet(self.current_theme))
         self._build_ui()
         self._connect_signals()
-        self._apply_theme_visuals()
         self._set_status("idle", "Ожидание запуска…")
 
     # ──────────────────────────────────── BUILD ───────────────────────────────
@@ -146,16 +146,18 @@ class MainWindow(QWidget):
         inner.setObjectName("contentInner")
         inner.setAttribute(Qt.WA_StyledBackground, True)
         inner_lay = QVBoxLayout(inner)
-        inner_lay.setContentsMargins(18, 16, 18, 18)
-        inner_lay.setSpacing(14)
+        inner_lay.setContentsMargins(0, 0, 0, 0)
+        inner_lay.setSpacing(0)
 
         chart_panel = QWidget()
         chart_panel.setObjectName("chartPanel")
+        chart_panel.setMinimumHeight(0)
         chart_lay = QVBoxLayout(chart_panel)
-        chart_lay.setContentsMargins(14, 10, 14, 14)
-        chart_lay.setSpacing(8)
+        chart_lay.setContentsMargins(0, 0, 0, 0)
+        chart_lay.setSpacing(0)
 
         self._tabs = QTabWidget()
+        self._tabs.setObjectName("chartTabs")
         self._view_cluster = self._make_chart_view()
         self._view_error = self._make_chart_view()
         self._tabs.addTab(self._view_cluster, "Кластерная модель")
@@ -164,11 +166,14 @@ class MainWindow(QWidget):
 
         results_panel = QWidget()
         results_panel.setObjectName("resultsPanel")
+        results_panel.setMinimumHeight(200)
         results_lay = QVBoxLayout(results_panel)
-        results_lay.setContentsMargins(12, 10, 12, 12)
+        results_lay.setContentsMargins(0, 0, 0, 0)
         results_lay.setSpacing(8)
 
+        # ── Header row ──────────────────────────────────────────────────────
         results_header = QHBoxLayout()
+        results_header.setContentsMargins(16, 10, 16, 0)
         results_header.setSpacing(8)
         results_title = QLabel("Результаты")
         results_title.setObjectName("panelTitle")
@@ -179,39 +184,55 @@ class MainWindow(QWidget):
         results_header.addStretch()
         results_lay.addLayout(results_header)
 
-        result_row = QWidget()
-        rr_lay = QHBoxLayout(result_row)
-        rr_lay.setContentsMargins(0, 0, 0, 0)
-        rr_lay.setSpacing(12)
+        # ── Two-column horizontal splitter ───────────────────────────────────
+        h_split = QSplitter(Qt.Horizontal)
+        h_split.setHandleWidth(8)
+        h_split.setChildrenCollapsible(False)
 
-        table_col = QVBoxLayout()
-        table_col.setSpacing(6)
+        # Left: equations table
+        table_wrap = QWidget()
+        tw_lay = QVBoxLayout(table_wrap)
+        tw_lay.setContentsMargins(0, 0, 0, 0)
+        tw_lay.setSpacing(6)
         tbl_title = QLabel("Уравнения кластеров")
         tbl_title.setObjectName("panelTitle")
-        table_col.addWidget(tbl_title)
+        tw_lay.addWidget(tbl_title)
         self._table = self._make_table()
-        table_col.addWidget(self._table)
+        tw_lay.addWidget(self._table, 1)
 
-        details_col = QVBoxLayout()
-        details_col.setSpacing(6)
+        # Right: point distribution
+        details_wrap = QWidget()
+        dw_lay = QVBoxLayout(details_wrap)
+        dw_lay.setContentsMargins(0, 0, 0, 0)
+        dw_lay.setSpacing(6)
         det_title = QLabel("Распределение точек")
         det_title.setObjectName("panelTitle")
-        details_col.addWidget(det_title)
+        dw_lay.addWidget(det_title)
         self._details = QTextBrowser()
         self._details.setPlaceholderText(
             "Детализация распределения точек по кластерам появится здесь…"
         )
-        details_col.addWidget(self._details)
+        self._details.setTextInteractionFlags(Qt.NoTextInteraction)
+        self._details.setOpenLinks(False)
+        self._details.setMinimumWidth(220)
+        dw_lay.addWidget(self._details, 1)
 
-        rr_lay.addLayout(table_col, 3)
-        rr_lay.addLayout(details_col, 2)
-        results_lay.addWidget(result_row)
+        h_split.addWidget(table_wrap)
+        h_split.addWidget(details_wrap)
+        h_split.setSizes([600, 300])
 
+        h_split.setContentsMargins(8, 0, 8, 8)
+        results_lay.addWidget(h_split, 1)
+
+        # ── Main vertical splitter ───────────────────────────────────────────
         splitter = QSplitter(Qt.Vertical)
         splitter.addWidget(chart_panel)
         splitter.addWidget(results_panel)
-        splitter.setSizes([560, 240])
-        splitter.setHandleWidth(8)
+        splitter.setSizes([520, 260])
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 2)
+        splitter.setHandleWidth(10)
+        splitter.setChildrenCollapsible(False)
         inner_lay.addWidget(splitter, 1)
 
         layout.addWidget(inner, 1)
@@ -263,14 +284,20 @@ class MainWindow(QWidget):
 
     def _make_chart_view(self) -> QWidget:
         from PySide6.QtWebEngineWidgets import QWebEngineView
+        from PySide6.QtWidgets import QSizePolicy
 
         wrap = QWidget()
         wrap.setObjectName("chartCanvas")
+        wrap.setMinimumHeight(0)
         lay = QVBoxLayout(wrap)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
         view = QWebEngineView()
-        view.setStyleSheet("background: #ffffff;")
+        view.setMinimumSize(0, 0)
+        view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        view.setHtml(
+            "<html><body style='background:#1a1625;margin:0'></body></html>"
+        )
         lay.addWidget(view)
         wrap._web_view = view  # type: ignore[attr-defined]
         return wrap
@@ -302,13 +329,11 @@ class MainWindow(QWidget):
         sb.preview_btn.clicked.connect(self._show_preview)
         sb.solve_btn.clicked.connect(self._run_model)
         sb.pdf_btn.clicked.connect(self._export_pdf)
-        sb.theme_changed.connect(self._apply_theme)
 
     # ──────────────────────────── SLOTS ──────────────────────────────────────
 
     def _drawer_rect(self, x: int) -> QRect:
-        h = self._stack.height()
-        return QRect(x, DRAWER_MARGIN, SIDEBAR_WIDTH, h - 2 * DRAWER_MARGIN)
+        return QRect(x, 0, SIDEBAR_WIDTH, self._stack.height())
 
     def _set_menu_btn_visible(self, visible: bool) -> None:
         self._menu_btn.setVisible(visible)
@@ -376,53 +401,44 @@ class MainWindow(QWidget):
         if self._drawer_open or self._sidebar.isVisible():
             self._sidebar.setGeometry(self._drawer_rect(x))
 
-    def _apply_theme(self, is_dark: bool) -> None:
-        self.current_theme = "dark" if is_dark else "light"
-        self.setStyleSheet(build_stylesheet(self.current_theme))
-        self._apply_theme_visuals()
-        if self.last_results:
-            self._render_details()
-
-    def _apply_theme_visuals(self) -> None:
-        t = THEMES[self.current_theme]
-        self._overlay.set_theme(self.current_theme)
-        self._sidebar.theme_toggle.set_colors(t["accent_pink"], t["border"])
-
     def _set_status(self, state: str, text: str) -> None:
         self._status_dot.set_state(state)
         self._metric_lbl.setText(text)
-        t = THEMES[self.current_theme]
         color_map = {
-            "idle":    t["text_secondary"],
-            "ready":   t["accent_green"],
-            "running": t["accent"],
-            "error":   t["accent_red"],
-            "success": t["accent_green"],
+            "idle":    "rgba(255,255,255,0.50)",
+            "ready":   "#26c6da",
+            "running": "#ab47bc",
+            "error":   "#f44336",
+            "success": "#26c6da",
         }
         self._metric_lbl.setStyleSheet(
-            f"color: {color_map.get(state, t['text_secondary'])}; "
+            f"color: {color_map.get(state, 'rgba(255,255,255,0.50)')}; "
             f"font-weight: 600; background: transparent;"
         )
 
     def _load_file(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            self, "Открыть файл данных", "", "CSV (*.csv)"
+            self, "Открыть файл Excel", "",
+            "Excel файлы (*.xlsx *.xls *.xlsm *.xlsb *.ods);;Все файлы (*.*)"
         )
         if not path:
             return
         try:
-            x, y = load_csv(path)
+            df = load_excel(path)
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка загрузки", str(exc))
             return
 
         self.csv_path = path
-        self.loaded_data = (x, y)
+        self.loaded_df = df
+        # Default: last col = Y, rest = X
+        self.sel_y_col = df.columns[-1]
+        self.sel_x_cols = list(df.columns[:-1])
         self.current_data = None
         self.last_results = None
         self.g_coeffs = None
 
-        self._sidebar.set_file_loaded(Path(path).name, len(x))
+        self._sidebar.set_file_loaded(Path(path).name, len(df))
         self._sidebar.pdf_btn.setEnabled(False)
         self._set_status("ready", "Данные загружены — готово к расчёту")
         self._global_reg_lbl.setText("Общая регрессия не рассчитана")
@@ -432,23 +448,37 @@ class MainWindow(QWidget):
         self._show_preview()
 
     def _show_preview(self) -> None:
-        if not self.csv_path or not self.loaded_data:
-            QMessageBox.warning(self, "Внимание", "Сначала загрузите CSV файл.")
+        if not self.csv_path or self.loaded_df is None:
+            QMessageBox.warning(self, "Внимание", "Сначала загрузите файл Excel.")
             return
-        x, y = self.loaded_data
-        DataPreviewDialog(self.csv_path, x, y, self).exec()
+        dlg = DataPreviewDialog(
+            self.csv_path, self.loaded_df,
+            self.sel_x_cols, self.sel_y_col, self
+        )
+        if dlg.exec():
+            self.sel_x_cols = dlg.selected_x_cols
+            self.sel_y_col = dlg.selected_y_col
+            n_x = len(self.sel_x_cols)
+            self._set_status(
+                "ready",
+                f"X: {n_x} переменных · Y: {self.sel_y_col}"
+            )
 
     def _run_model(self) -> None:
-        if not self.loaded_data:
-            QMessageBox.warning(self, "Внимание", "Сначала загрузите CSV файл.")
+        if self.loaded_df is None:
+            QMessageBox.warning(self, "Внимание", "Сначала загрузите файл Excel.")
+            return
+        if not self.sel_x_cols or not self.sel_y_col:
+            QMessageBox.warning(self, "Внимание", "Выберите столбцы X и Y в предпросмотре.")
             return
         try:
-            x, y = self.loaded_data
+            X = self.loaded_df[self.sel_x_cols].values.tolist()
+            y = self.loaded_df[self.sel_y_col].tolist()
             r = self._sidebar.r_spin.value()
-            sizes = self._sidebar.get_cluster_sizes(len(x), r)
+            sizes = self._sidebar.get_cluster_sizes(len(X), r)
             self._set_solving(True)
-            self.current_data = (x, y, r)
-            self.worker = SolverThread(x, y, r, sizes)
+            self.current_data = (X, y, r, self.sel_x_cols, self.sel_y_col)
+            self.worker = SolverThread(X, y, r, sizes, self.sel_x_cols, self.sel_y_col)
             self.worker.finished.connect(self._on_success)
             self.worker.error.connect(self._on_error)
             self.worker.start()
@@ -483,29 +513,35 @@ class MainWindow(QWidget):
         if not self.current_data:
             return
 
-        x, y, r = self.current_data
-        self._fill_table(results, r)
-        self._render_details()
+        X, y, r, x_cols, y_col = self.current_data
+        self._fill_table(results, r, x_cols)
+        self._render_details(x_cols)
         self._render_metrics(y, results, g_coeffs)
+        # For 2-D plot use first X column only; with multiple X show first
+        x0 = [row[0] for row in X]
         self._render_plots(
-            build_cluster_plot(results, x, y, g_coeffs),
-            build_error_plot(results, x, y),
+            build_cluster_plot(results, x0, y, g_coeffs),
+            build_error_plot(results, x0, y),
         )
         self._sidebar.pdf_btn.setEnabled(True)
         self._cluster_count_lbl.setText(f"{r} кластеров")
 
     # ──────────────────────────── RENDER ─────────────────────────────────────
 
-    def _fill_table(self, results: dict[str, Any], r: int) -> None:
+    def _fill_table(self, results: dict[str, Any], r: int, x_cols: list[str] | None = None) -> None:
         self._table.setRowCount(r)
-        for idx, (a0, a1) in enumerate(results["coeffs"]):
+        for idx, (a0, a1_list) in enumerate(results["coeffs"]):
             pts = results["clusters"].get(idx, [])
 
             c = QTableWidgetItem(f"P{idx + 1}")
             c.setTextAlignment(Qt.AlignCenter)
             self._table.setItem(idx, 0, c)
 
-            self._table.setItem(idx, 1, QTableWidgetItem(f"{a0:.4f} + {a1:.4f}·x"))
+            terms = [f"{a0:.4f}"]
+            for fi, a in enumerate(a1_list):
+                col_name = x_cols[fi] if x_cols and fi < len(x_cols) else f"x{fi}"
+                terms.append(f"{a:+.4f}·{col_name}")
+            self._table.setItem(idx, 1, QTableWidgetItem(" ".join(terms)))
 
             n = QTableWidgetItem(str(len(pts)))
             n.setTextAlignment(Qt.AlignCenter)
@@ -522,31 +558,34 @@ class MainWindow(QWidget):
         self._set_status("success", f"Средняя ошибка (E): {err:.4f}%")
         self._global_reg_lbl.setText(f"y = {g0:.4f} + {g1:.4f}·x")
 
-    def _render_details(self) -> None:
+    def _render_details(self, x_cols: list[str] | None = None) -> None:
         if not self.last_results:
             return
-        t = THEMES[self.current_theme]
+        cols = x_cols or self.sel_x_cols
         rows = []
         for idx in range(len(self.last_results["coeffs"])):
             pts = [str(p + 1) for p in self.last_results["clusters"].get(idx, [])]
-            a0, a1 = self.last_results["coeffs"][idx]
+            a0, a1_list = self.last_results["coeffs"][idx]
+            terms = [f"{a0:.4f}"]
+            for fi, a in enumerate(a1_list):
+                cn = cols[fi] if cols and fi < len(cols) else f"x{fi}"
+                terms.append(f"{a:+.4f}·{cn}")
+            eq = "y = " + " ".join(terms)
             rows.append(
                 f"<div style='margin:0 0 10px 0;padding:10px 12px;"
-                f"background:{t['bg_elevated']};border:1px solid {t['border']};"
-                f"border-radius:12px;border-left:3px solid {t['accent_pink']};'>"
+                f"background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);"
+                f"border-radius:6px;border-left:3px solid #e040fb;'>"
                 f"<div style='margin-bottom:4px;'>"
-                f"<b style='color:{t['accent_pink']};font-size:13px;'>P{idx + 1}</b>"
-                f"<span style='color:{t['text_muted']};font-size:11px;"
+                f"<b style='color:#e040fb;font-size:13px;'>P{idx + 1}</b>"
+                f"<span style='color:rgba(255,255,255,0.45);font-size:11px;"
                 f"margin-left:8px;'>{len(pts)} точек</span></div>"
-                f"<div style='color:{t['text_secondary']};font-size:12px;"
-                f"font-family:Consolas,monospace;margin-bottom:4px;'>"
-                f"y = {a0:.4f} + {a1:.4f}·x</div>"
-                f"<div style='color:{t['text_muted']};font-size:11px;"
+                f"<div style='color:rgba(255,255,255,0.85);font-size:12px;"
+                f"font-family:Consolas,monospace;margin-bottom:4px;'>{escape(eq)}</div>"
+                f"<div style='color:rgba(255,255,255,0.45);font-size:11px;"
                 f"line-height:1.4;'>[{escape(', '.join(pts))}]</div></div>"
             )
         html = (
-            f"<div style='font-family:\"Segoe UI\",sans-serif;"
-            f"color:{t['text_primary']};'>"
+            "<div style='font-family:\"Segoe UI\",sans-serif;color:#ffffff;'>"
             + "".join(rows)
             + "</div>"
         )
@@ -578,7 +617,10 @@ class MainWindow(QWidget):
             out = out.with_suffix(".pdf")
         try:
             file_name = Path(self.csv_path).name if self.csv_path else "unknown"
-            export_report(out, self.last_results, self.current_data, self.g_coeffs, file_name)
+            X, y, r, x_cols, y_col = self.current_data
+            export_report(
+                out, self.last_results, (X, y, r, x_cols), self.g_coeffs, file_name
+            )
             QMessageBox.information(self, "Готово", f"Отчёт сохранён:\n{out}")
         except Exception as exc:
             QMessageBox.critical(self, "Ошибка PDF", str(exc))
@@ -594,6 +636,4 @@ class MainWindow(QWidget):
 
     def showEvent(self, event) -> None:  # noqa: N802
         super().showEvent(event)
-        if not getattr(self, "_drawer_initialized", False):
-            self._drawer_initialized = True
-            self._open_drawer()
+        self._sync_drawer_layout()

@@ -5,7 +5,7 @@ from pyomo.environ import Constraint
 
 def add_constraints(
     model,
-    x: list[float],
+    X: list[list[float]],   # X[k][f]  — observation k, feature f
     y: list[float],
     big_m: float,
     cluster_sizes: list[int | None] | None = None,
@@ -18,22 +18,18 @@ def add_constraints(
     model.assign = Constraint(model.K, rule=assign_rule)
 
     def lower_error_bound(model, k, j):
+        y_hat = model.a0[j] + sum(model.a1[j, f] * X[k][f] for f in model.F)
         return (
-            model.a0[j]
-            + model.a1[j] * x[k]
-            - big_m * model.sigma[k, j]
-            + model.u[k]
+            y_hat - big_m * model.sigma[k, j] + model.u[k]
             >= y[k] - big_m
         )
 
     model.lower_error_bound = Constraint(model.K, model.J, rule=lower_error_bound)
 
     def upper_error_bound(model, k, j):
+        y_hat = model.a0[j] + sum(model.a1[j, f] * X[k][f] for f in model.F)
         return (
-            model.a0[j]
-            + model.a1[j] * x[k]
-            + big_m * model.sigma[k, j]
-            - model.u[k]
+            y_hat + big_m * model.sigma[k, j] - model.u[k]
             <= y[k] + big_m
         )
 

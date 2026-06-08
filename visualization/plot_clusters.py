@@ -71,7 +71,8 @@ def build_cluster_plot(
         )
 
     for cluster_index, point_indexes in clusters.items():
-        a0, a1 = coeffs[cluster_index]
+        a0, a1_list = coeffs[cluster_index]
+        a1 = a1_list[0]  # first feature for 2-D plot
         fig.add_trace(
             go.Scatter(
                 x=[x[i] for i in point_indexes],
@@ -87,7 +88,8 @@ def build_cluster_plot(
         )
 
     x_line = np.linspace(min(x), max(x), 300)
-    for cluster_index, (a0, a1) in enumerate(coeffs):
+    for cluster_index, (a0, a1_list) in enumerate(coeffs):
+        a1 = a1_list[0]
         fig.add_trace(
             go.Scatter(
                 x=x_line,
@@ -111,8 +113,8 @@ def build_cluster_plot(
 
     layout = _base_layout(
         "Кластерная линейная регрессия (MILP)",
-        "Инвестиции (x)",
-        "Выпуск продукции (y)",
+        "x",
+        "y",
     )
     layout["legend"]["title"] = {"text": "Обозначения"}
     fig.update_layout(**layout)
@@ -130,13 +132,14 @@ def build_error_plot(results: dict[str, Any], x: list[float], y: list[float]) ->
 
     all_points = []
     for cluster_index, point_indexes in clusters.items():
-        a0, a1 = coeffs[cluster_index]
+        a0, a1_list = coeffs[cluster_index]
+        a1_0 = a1_list[0]
         for point_index in point_indexes:
             all_points.append(
                 {
                     "x": x[point_index],
                     "y_fact": y[point_index],
-                    "y_calc": a0 + a1 * x[point_index],
+                    "y_calc": a0 + a1_0 * x[point_index],
                     "cluster": cluster_index,
                 }
             )
@@ -172,11 +175,12 @@ def build_error_plot(results: dict[str, Any], x: list[float], y: list[float]) ->
             )
         )
 
-        a0, a1 = coeffs[cluster_index]
+        a0, a1_list = coeffs[cluster_index]
+        a1_0 = a1_list[0]
         fig.add_trace(
             go.Scatter(
                 x=[x[i] for i in point_indexes],
-                y=[a0 + a1 * x[i] for i in point_indexes],
+                y=[a0 + a1_0 * x[i] for i in point_indexes],
                 mode="markers",
                 name=f"Кластер {cluster_index + 1} расчёт",
                 marker={
@@ -202,8 +206,8 @@ def build_error_plot(results: dict[str, Any], x: list[float], y: list[float]) ->
     fig.update_layout(
         **_base_layout(
             "Фактические и расчётные значения с ошибками",
-            "Инвестиции (x)",
-            "Выпуск продукции (y)",
+            "x",
+            "y",
         )
     )
     fig.update_xaxes(showgrid=True, gridcolor="#eef2f7", zerolinecolor="#cbd5e1")
