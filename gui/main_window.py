@@ -531,11 +531,9 @@ class MainWindow(QWidget):
         self._fill_table(results, r, x_cols)
         self._render_details(x_cols)
         self._render_metrics(y, results, g_coeffs)
-        # For 2-D plot use first X column only; with multiple X show first
-        x0 = [row[0] for row in X]
         self._render_plots(
-            build_cluster_plot(results, x0, y, g_coeffs),
-            build_error_plot(results, x0, y),
+            build_cluster_plot(results, X, y, g_coeffs, x_cols),
+            build_error_plot(results, X, y),
         )
         self._sidebar.pdf_btn.setEnabled(True)
         self._cluster_count_lbl.setText(f"{r} кластеров")
